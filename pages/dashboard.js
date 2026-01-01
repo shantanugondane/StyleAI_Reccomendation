@@ -197,25 +197,16 @@ export default function Dashboard() {
         const data = await res.json()
         const count = data.items?.length || 0
         setWardrobeCount(count)
-        
-        // If user has no wardrobe items, redirect to wardrobe page
-        if (count === 0) {
-          router.replace('/wardrobe')
-          return
-        }
-        // Only set loading to false if we're staying on dashboard
-        setLoading(false)
       } else {
-        // If API fails (e.g., database not set up), redirect to wardrobe
-        // This handles first-time users who haven't set up database yet
-        router.replace('/wardrobe')
-        return
+        // If API fails (e.g., database not set up), set count to 0
+        setWardrobeCount(0)
       }
     } catch (error) {
       console.error('Failed to fetch wardrobe count:', error)
-      // If API fails, redirect to wardrobe (likely first-time user)
-      router.replace('/wardrobe')
-      return
+      // If API fails, set count to 0 (database might not be set up yet)
+      setWardrobeCount(0)
+    } finally {
+      setLoading(false)
     }
   }
 

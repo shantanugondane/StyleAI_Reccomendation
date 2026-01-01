@@ -64,6 +64,7 @@ export default function Navbar() {
             <NavLink href="/dashboard">Dashboard</NavLink>
             <NavLink href="/wardrobe">Wardrobe</NavLink>
             <NavLink href="/recommendations">Recommendations</NavLink>
+            <NavLink href="/calendar">Calendar</NavLink>
             <Button onClick={() => signOut()}>
               Logout
             </Button>
