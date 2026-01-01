@@ -123,6 +123,13 @@ const DemoButton = styled.button`
   }
 `
 
+// Force dynamic rendering - this page uses Clerk which requires server-side rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function Login() {
   const router = useRouter()
   const { isSignedIn } = useUser()

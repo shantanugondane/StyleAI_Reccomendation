@@ -104,6 +104,13 @@ const FeatureDescription = styled.p`
   line-height: 1.6;
 `
 
+// Force dynamic rendering - this page uses Clerk which requires server-side rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function Home() {
   const { isSignedIn } = useUser()
 

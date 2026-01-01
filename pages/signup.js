@@ -136,6 +136,13 @@ const ErrorMessage = styled.div`
   margin-bottom: 1rem;
 `
 
+// Force dynamic rendering - this page uses Clerk which requires server-side rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function Signup() {
   const router = useRouter()
   const { isSignedIn } = useUser()

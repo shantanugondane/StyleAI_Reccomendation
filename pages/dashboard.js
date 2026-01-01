@@ -167,6 +167,13 @@ const ActivityTime = styled.div`
   color: #666;
 `
 
+// Force dynamic rendering - this page uses Clerk which requires server-side rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const { isSignedIn, isLoaded, user } = useUser()

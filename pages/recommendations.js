@@ -266,6 +266,13 @@ const EmptyText = styled.p`
   margin-bottom: 2rem;
 `
 
+// Force dynamic rendering - this page uses Clerk which requires server-side rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
 export default function Recommendations() {
   const router = useRouter()
   const { isSignedIn, isLoaded } = useUser()
