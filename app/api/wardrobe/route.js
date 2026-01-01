@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUserFromClerk } from '@/lib/clerk-auth'
 import { wardrobeItemSchema } from '@/lib/validations'
 
+// Force dynamic rendering - this route should not be statically analyzed
+export const dynamic = 'force-dynamic'
+
 // GET /api/wardrobe - Get all wardrobe items for current user
 export async function GET() {
   try {

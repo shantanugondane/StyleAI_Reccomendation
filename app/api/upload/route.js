@@ -4,6 +4,9 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
+// Force dynamic rendering - this route should not be statically analyzed
+export const dynamic = 'force-dynamic'
+
 export async function POST(request) {
   try {
     const user = await getCurrentUserFromClerk()

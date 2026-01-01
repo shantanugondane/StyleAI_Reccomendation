@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUserFromClerk } from '@/lib/clerk-auth'
 import { wardrobeItemSchema } from '@/lib/validations'
 
+// Force dynamic rendering - this route should not be statically analyzed
+export const dynamic = 'force-dynamic'
+
 // PUT /api/wardrobe/[id] - Update wardrobe item
 export async function PUT(request, { params }) {
   try {
