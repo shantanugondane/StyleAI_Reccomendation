@@ -1,4 +1,5 @@
 import { createGlobalStyle } from 'styled-components'
+import { ClerkProvider } from '@clerk/nextjs'
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -35,9 +36,9 @@ const GlobalStyle = createGlobalStyle`
 
 export default function App({ Component, pageProps }) {
   return (
-    <>
+    <ClerkProvider>
       <GlobalStyle />
       <Component {...pageProps} />
-    </>
+    </ClerkProvider>
   )
 }

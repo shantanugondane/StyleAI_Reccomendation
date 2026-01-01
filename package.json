@@ -6,16 +6,28 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@clerk/nextjs": "^5.7.5",
+    "@prisma/client": "^5.7.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
+    "cookie": "^0.6.0",
+    "jsonwebtoken": "^9.0.2",
     "next": "14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "styled-components": "^6.1.0"
+    "styled-components": "^6.1.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
-    "eslint-config-next": "14.0.0"
+    "eslint-config-next": "14.0.0",
+    "prisma": "^5.7.0"
   }
 }

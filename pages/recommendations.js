@@ -2,6 +2,7 @@ import styled from 'styled-components'
 import Navbar from '../components/Navbar'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import { useUser } from '@clerk/nextjs'
 
 const Container = styled.div`
   min-height: 100vh;
@@ -267,20 +268,16 @@ const EmptyText = styled.p`
 
 export default function Recommendations() {
   const router = useRouter()
-  const [user, setUser] = useState(null)
+  const { isSignedIn, isLoaded } = useUser()
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [recommendations, setRecommendations] = useState([])
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
+    if (isLoaded && !isSignedIn) {
       router.push('/login')
-      return
     }
-    
-    setUser(JSON.parse(userData))
-  }, [router])
+  }, [isSignedIn, isLoaded, router])
 
   const examplePrompts = [
     "Office meeting tomorrow at 2 PM",
@@ -291,56 +288,44 @@ export default function Recommendations() {
     "Formal business presentation"
   ]
 
-  const mockRecommendations = [
-    {
-      id: 1,
-      title: "Professional Elegance",
-      rating: 4.8,
-      description: "Perfect for your office meeting. This combination exudes confidence and professionalism while maintaining comfort throughout the day.",
-      items: ["White Blouse", "Black Blazer", "Dark Jeans", "Black Heels", "Pearl Necklace"],
-      featured: true
-    },
-    {
-      id: 2,
-      title: "Smart Casual",
-      rating: 4.5,
-      description: "A versatile look that transitions well from office to after-work drinks. Comfortable yet polished.",
-      items: ["Navy Sweater", "Gray Trousers", "White Sneakers", "Leather Watch"],
-      featured: false
-    },
-    {
-      id: 3,
-      title: "Modern Minimalist",
-      rating: 4.3,
-      description: "Clean lines and neutral tones create a sophisticated appearance that's perfect for any professional setting.",
-      items: ["Beige Cardigan", "Black Pants", "Ankle Boots", "Gold Earrings"],
-      featured: false
-    }
-  ]
-
-  const handleGenerateRecommendations = () => {
+  const handleGenerateRecommendations = async () => {
     if (!prompt.trim()) return
 
     setLoading(true)
     
-    // Simulate AI processing
-    setTimeout(() => {
-      setRecommendations(mockRecommendations)
+    try {
+      const res = await fetch('/api/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setRecommendations(data.recommendations || [])
+      } else {
+        const error = await res.json()
+        alert(error.error || 'Failed to generate recommendations')
+      }
+    } catch (error) {
+      console.error('Error generating recommendations:', error)
+      alert('Failed to generate recommendations. Please try again.')
+    } finally {
       setLoading(false)
-    }, 2000)
+    }
   }
 
   const handleExampleClick = (examplePrompt) => {
     setPrompt(examplePrompt)
   }
 
-  if (!user) {
+  if (!isLoaded || !isSignedIn) {
     return <div>Loading...</div>
   }
 
   return (
     <Container>
-      <Navbar user={user} />
+      <Navbar />
       
       <Header>
         <Title>AI Outfit Recommendations</Title>

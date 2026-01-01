@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id // Will use Clerk's userId
+  name             String
+  email            String   @unique
+  passwordHash     String?  @map("password_hash") // Optional - Clerk handles auth
+  gender           String?
+  height           Int?
+  weight           Int?
+  bodyType         String?  @map("body_type")
+  skinTone         String?  @map("skin_tone")
+  hairColor        String?  @map("hair_color")
+  stylePreferences Json?    @default("[]") @map("style_preferences")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  wardrobeItems    WardrobeItem[]
+
+  @@map("users")
+}
+
+model WardrobeItem {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String?
+  category  String
+  color     String?
+  season    String?
+  occasion  String?
+  imageUrl  String   @map("image_url")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wardrobe_items")
+}

@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import Link from 'next/link'
+import { useUser, useClerk } from '@clerk/nextjs'
 
 const Nav = styled.nav`
   display: flex;
@@ -50,20 +51,20 @@ const Button = styled.button`
   }
 `
 
-export default function Navbar({ user }) {
+export default function Navbar() {
+  const { isSignedIn, user } = useUser()
+  const { signOut } = useClerk()
+
   return (
     <Nav>
       <Logo>StyleAI</Logo>
       <NavLinks>
-        {user ? (
+        {isSignedIn ? (
           <>
             <NavLink href="/dashboard">Dashboard</NavLink>
             <NavLink href="/wardrobe">Wardrobe</NavLink>
             <NavLink href="/recommendations">Recommendations</NavLink>
-            <Button onClick={() => {
-              localStorage.removeItem('user')
-              window.location.href = '/'
-            }}>
+            <Button onClick={() => signOut()}>
               Logout
             </Button>
           </>

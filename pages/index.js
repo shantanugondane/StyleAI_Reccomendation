@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 import Navbar from '../components/Navbar'
-import { useEffect, useState } from 'react'
+import { useUser } from '@clerk/nextjs'
 
 const Container = styled.div`
   min-height: 100vh;
@@ -105,32 +105,19 @@ const FeatureDescription = styled.p`
 `
 
 export default function Home() {
-  const [user, setUser] = useState(null)
-
-  useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      setUser(JSON.parse(userData))
-    }
-  }, [])
+  const { isSignedIn } = useUser()
 
   const handleGetStarted = () => {
-    if (user) {
+    if (isSignedIn) {
       window.location.href = '/dashboard'
     } else {
       window.location.href = '/signup'
     }
   }
 
-  const handleClearSession = () => {
-    localStorage.removeItem('user')
-    localStorage.removeItem('wardrobe')
-    setUser(null)
-  }
-
   return (
     <Container>
-      <Navbar user={user} />
+      <Navbar />
       
       <Hero>
         <HeroTitle>AI-Powered Personal Stylist</HeroTitle>
@@ -140,27 +127,6 @@ export default function Home() {
         <CTAButton onClick={handleGetStarted}>
           Start Your Style Journey
         </CTAButton>
-        
-        {user && (
-          <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.7 }}>
-            <div style={{ marginBottom: '0.5rem' }}>
-              Logged in as: {user.name} ({user.email})
-            </div>
-            <button 
-              onClick={handleClearSession}
-              style={{ 
-                background: 'transparent', 
-                border: '1px solid rgba(255,255,255,0.3)', 
-                color: 'white', 
-                padding: '0.5rem 1rem', 
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              Clear Session (Debug)
-            </button>
-          </div>
-        )}
       </Hero>
 
       <Features>

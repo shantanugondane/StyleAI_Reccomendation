@@ -2,6 +2,7 @@ import styled from 'styled-components'
 import Navbar from '../components/Navbar'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import { useUser } from '@clerk/nextjs'
 
 const Container = styled.div`
   min-height: 100vh;
@@ -168,24 +169,50 @@ const ActivityTime = styled.div`
 
 export default function Dashboard() {
   const router = useRouter()
-  const [user, setUser] = useState(null)
+  const { isSignedIn, isLoaded, user } = useUser()
   const [wardrobeCount, setWardrobeCount] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
+    if (isLoaded) {
+      if (!isSignedIn) {
+        router.push('/login')
+        return
+      }
+      fetchWardrobeCount()
+    }
+  }, [isSignedIn, isLoaded, router])
+
+  const fetchWardrobeCount = async () => {
+    try {
+      const res = await fetch('/api/wardrobe')
+      if (res.ok) {
+        const data = await res.json()
+        const count = data.items?.length || 0
+        setWardrobeCount(count)
+        
+        // If user has no wardrobe items, redirect to wardrobe page
+        if (count === 0) {
+          router.replace('/wardrobe')
+          return
+        }
+        // Only set loading to false if we're staying on dashboard
+        setLoading(false)
+      } else {
+        // If API fails (e.g., database not set up), redirect to wardrobe
+        // This handles first-time users who haven't set up database yet
+        router.replace('/wardrobe')
+        return
+      }
+    } catch (error) {
+      console.error('Failed to fetch wardrobe count:', error)
+      // If API fails, redirect to wardrobe (likely first-time user)
+      router.replace('/wardrobe')
       return
     }
-    
-    setUser(JSON.parse(userData))
-    
-    // Get wardrobe count
-    const wardrobe = JSON.parse(localStorage.getItem('wardrobe') || '[]')
-    setWardrobeCount(wardrobe.length)
-  }, [router])
+  }
 
-  if (!user) {
+  if (!isLoaded || loading || !isSignedIn) {
     return <div>Loading...</div>
   }
 
@@ -201,7 +228,7 @@ export default function Dashboard() {
       <Navbar user={user} />
       
       <Header>
-        <WelcomeMessage>Welcome back, {user.name}! 👋</WelcomeMessage>
+        <WelcomeMessage>Welcome back, {user?.firstName || user?.fullName || 'User'}! 👋</WelcomeMessage>
         <Subtitle>Ready to discover your next perfect outfit?</Subtitle>
       </Header>
 

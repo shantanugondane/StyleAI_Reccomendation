@@ -1,7 +1,9 @@
 import styled from 'styled-components'
 import Navbar from '../components/Navbar'
-import { useState } from 'react'
+import { SignIn } from '@clerk/nextjs'
 import { useRouter } from 'next/router'
+import { useUser } from '@clerk/nextjs'
+import { useEffect } from 'react'
 
 const Container = styled.div`
   min-height: 100vh;
@@ -123,111 +125,29 @@ const DemoButton = styled.button`
 
 export default function Login() {
   const router = useRouter()
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { isSignedIn } = useUser()
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    // Simple validation
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all fields')
-      setLoading(false)
-      return
-    }
-
-    // Simulate API call
-    setTimeout(() => {
-      // For demo purposes, accept any email/password
-      const userData = {
-        id: Date.now().toString(),
-        name: 'Demo User',
-        email: formData.email,
-        gender: 'female',
-        stylePreferences: ['casual', 'formal'],
-        createdAt: new Date().toISOString()
-      }
-      
-      localStorage.setItem('user', JSON.stringify(userData))
-      setLoading(false)
+  useEffect(() => {
+    if (isSignedIn) {
       router.push('/dashboard')
-    }, 1000)
-  }
-
-  const handleDemoLogin = () => {
-    const userData = {
-      id: Date.now().toString(),
-      name: 'Demo User',
-      email: 'demo@styleai.com',
-      gender: 'female',
-      stylePreferences: ['casual', 'formal', 'bohemian'],
-      createdAt: new Date().toISOString()
     }
-    
-    localStorage.setItem('user', JSON.stringify(userData))
-    router.push('/dashboard')
-  }
+  }, [isSignedIn, router])
 
   return (
     <Container>
       <Navbar />
       <FormContainer>
-        <Form onSubmit={handleSubmit}>
-          <Title>Welcome Back</Title>
-          <Subtitle>Sign in to your StyleAI account</Subtitle>
-          
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-          
-          <InputGroup>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-            />
-          </InputGroup>
-
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Signing In...' : 'Sign In'}
-          </Button>
-
-          <DemoButton onClick={handleDemoLogin}>
-            Try Demo Account
-          </DemoButton>
-
-          <SignupLink>
-            Don't have an account? <a href="/signup">Sign up</a>
-          </SignupLink>
-        </Form>
+        <SignIn 
+          appearance={{
+            elements: {
+              rootBox: "mx-auto",
+              card: "shadow-lg"
+            }
+          }}
+          routing="hash"
+          signUpUrl="/signup"
+          afterSignInUrl="/dashboard"
+        />
       </FormContainer>
     </Container>
   )

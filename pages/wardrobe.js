@@ -2,6 +2,7 @@ import styled from 'styled-components'
 import Navbar from '../components/Navbar'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import { useUser } from '@clerk/nextjs'
 
 const Container = styled.div`
   min-height: 100vh;
@@ -268,10 +269,11 @@ const EmptyText = styled.p`
 
 export default function Wardrobe() {
   const router = useRouter()
-  const [user, setUser] = useState(null)
+  const { isSignedIn, isLoaded } = useUser()
   const [wardrobe, setWardrobe] = useState([])
   const [filter, setFilter] = useState('all')
   const [dragover, setDragover] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
     category: 'Tops',
@@ -280,25 +282,28 @@ export default function Wardrobe() {
   const [previewUrl, setPreviewUrl] = useState(null)
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
+    if (isLoaded) {
+      if (!isSignedIn) {
+        router.push('/login')
+        return
+      }
+      fetchWardrobe()
     }
-    
-    setUser(JSON.parse(userData))
-    
-    // Load wardrobe from localStorage
-    let wardrobeData = JSON.parse(localStorage.getItem('wardrobe') || '[]')
-    
-    // Clear any existing dummy data (remove sample items)
-    wardrobeData = wardrobeData.filter(item => !item.id.startsWith('sample'))
-    if (wardrobeData.length !== JSON.parse(localStorage.getItem('wardrobe') || '[]').length) {
-      localStorage.setItem('wardrobe', JSON.stringify(wardrobeData))
+  }, [isSignedIn, isLoaded, router])
+
+  const fetchWardrobe = async () => {
+    try {
+      const res = await fetch('/api/wardrobe')
+      if (res.ok) {
+        const data = await res.json()
+        setWardrobe(data.items || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch wardrobe:', error)
+    } finally {
+      setLoading(false)
     }
-    
-    setWardrobe(wardrobeData)
-  }, [router])
+  }
 
   // Smart categorization based on filename
   const categorizeItem = (filename) => {
@@ -389,7 +394,7 @@ export default function Wardrobe() {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!formData.name || !formData.image) {
@@ -397,30 +402,56 @@ export default function Wardrobe() {
       return
     }
 
-    const newItem = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      category: formData.category,
-      imageUrl: previewUrl,
-      uploadedAt: new Date().toISOString()
+    try {
+      // Upload image first
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', formData.image)
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image')
+      }
+
+      const uploadData = await uploadRes.json()
+
+      // Create wardrobe item
+      const itemRes = await fetch('/api/wardrobe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          category: formData.category,
+          imageUrl: uploadData.imageUrl,
+        }),
+      })
+
+      if (!itemRes.ok) {
+        throw new Error('Failed to create item')
+      }
+
+      const { item } = await itemRes.json()
+      
+      // Update local state
+      setWardrobe([...wardrobe, item])
+      
+      // Reset form
+      setFormData({
+        name: '',
+        category: 'Tops',
+        image: null
+      })
+      setPreviewUrl(null)
+      document.getElementById('fileInput').value = ''
+      
+      alert(`Item "${item.name}" added to ${item.category} category!`)
+    } catch (error) {
+      console.error('Error creating item:', error)
+      alert('Failed to add item. Please try again.')
     }
-    
-    
-    const updatedWardrobe = [...wardrobe, newItem]
-    setWardrobe(updatedWardrobe)
-    localStorage.setItem('wardrobe', JSON.stringify(updatedWardrobe))
-    
-    // Reset form
-    setFormData({
-      name: '',
-      category: 'Tops',
-      image: null
-    })
-    setPreviewUrl(null)
-    document.getElementById('fileInput').value = ''
-    
-    // Show success message
-    alert(`Item "${newItem.name}" added to ${newItem.category} category!`)
   }
 
   const handleDragOver = (e) => {
@@ -432,20 +463,47 @@ export default function Wardrobe() {
     setDragover(false)
   }
 
-  const deleteItem = (id) => {
-    const updatedWardrobe = wardrobe.filter(item => item.id !== id)
-    setWardrobe(updatedWardrobe)
-    localStorage.setItem('wardrobe', JSON.stringify(updatedWardrobe))
+  const deleteItem = async (id) => {
+    if (!confirm('Are you sure you want to delete this item?')) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/wardrobe/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (res.ok) {
+        setWardrobe(wardrobe.filter(item => item.id !== id))
+      } else {
+        throw new Error('Failed to delete item')
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      alert('Failed to delete item. Please try again.')
+    }
   }
 
-  const editItem = (id) => {
+  const editItem = async (id) => {
     const newCategory = prompt('Enter new category (Tops, Bottoms, Dresses, Shoes, Accessories):')
-    if (newCategory && ['Tops', 'Bottoms', 'Dresses', 'Shoes', 'Accessories', 'Unknown'].includes(newCategory)) {
-      const updatedWardrobe = wardrobe.map(item => 
-        item.id === id ? { ...item, category: newCategory } : item
-      )
-      setWardrobe(updatedWardrobe)
-      localStorage.setItem('wardrobe', JSON.stringify(updatedWardrobe))
+    if (newCategory && ['Tops', 'Bottoms', 'Dresses', 'Shoes', 'Accessories'].includes(newCategory)) {
+      try {
+        const res = await fetch(`/api/wardrobe/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category: newCategory }),
+        })
+
+        if (res.ok) {
+          const { item } = await res.json()
+          setWardrobe(wardrobe.map(w => w.id === id ? item : w))
+        } else {
+          throw new Error('Failed to update item')
+        }
+      } catch (error) {
+        console.error('Error updating item:', error)
+        alert('Failed to update item. Please try again.')
+      }
     }
   }
 
@@ -453,13 +511,13 @@ export default function Wardrobe() {
     ? wardrobe 
     : wardrobe.filter(item => item.category.toLowerCase() === filter.toLowerCase())
 
-  if (!user) {
+  if (!isLoaded || loading || !isSignedIn) {
     return <div>Loading...</div>
   }
 
   return (
     <Container>
-      <Navbar user={user} />
+      <Navbar />
       
       <Header>
         <Title>My Wardrobe</Title>
@@ -592,11 +650,11 @@ export default function Wardrobe() {
           <EmptyState>
             <EmptyIcon>👗</EmptyIcon>
             <EmptyTitle>
-              {filter === 'all' ? 'Your wardrobe is empty' : `No ${filter} found`}
+              {filter === 'all' ? 'Welcome! Let\'s build your wardrobe' : `No ${filter} found`}
             </EmptyTitle>
             <EmptyText>
               {filter === 'all' 
-                ? 'Start building your virtual wardrobe by uploading photos of your clothes.'
+                ? 'Start by uploading photos of your clothes. Add at least 2-3 items to get personalized outfit recommendations!'
                 : `Try uploading some ${filter} or check other categories.`
               }
             </EmptyText>
